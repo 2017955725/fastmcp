@@ -136,9 +136,7 @@ class AzureProvider(OAuthProxy):
                 must be provided.
             tenant_id: Azure tenant ID (specific tenant GUID, "organizations", or "consumers")
             identifier_uri: Optional Application ID URI for your custom API (defaults to api://{client_id}).
-                This URI is automatically prefixed to all required_scopes during initialization.
-                Example: identifier_uri="api://my-api" + required_scopes=["read"]
-                → tokens validated for "api://my-api/read"
+                Custom API scopes are prefixed with this URI in Azure authorization requests
             base_url: Public URL where OAuth endpoints will be accessible (includes any mount path)
             resource_base_url: Optional public base URL for the protected resource metadata
                 and token audience. Defaults to ``base_url``.
@@ -147,15 +145,14 @@ class AzureProvider(OAuthProxy):
             redirect_path: Redirect path configured in Azure App registration (defaults to "/auth/callback")
             base_authority: Azure authority base URL (defaults to "login.microsoftonline.com").
                 For Azure Government, use "login.microsoftonline.us".
-            token_issuer: Override the expected `iss` claim value for JWT validation.
+            token_issuer: Override the expected `iss` claim for the default JWT verifier.
                 Defaults to the standard Entra ID issuer derived from `base_authority`
-                and `tenant_id`. Pass an explicit string to enforce a specific issuer.
-            required_scopes: Custom API scope names WITHOUT prefix (e.g., ["read", "write"]).
-                - Automatically prefixed with identifier_uri during initialization
-                - Validated on all tokens
-                - Advertised in Protected Resource Metadata
-                - Must match scope names defined in Azure Portal under "Expose an API"
-                Example: ["read", "write"] → validates tokens containing ["api://xxx/read", "api://xxx/write"]
+                and `tenant_id`. Configure the issuer on a supplied token_verifier instead
+            required_scopes: Scope names to request from Azure (e.g., ["read", "write"]).
+                Custom API scopes are prefixed with identifier_uri in authorization requests
+                and advertised in Protected Resource Metadata. The default verifier validates
+                non-OIDC scopes using the short names in Azure's scp claim. When token_verifier
+                is supplied, token validation uses that verifier's requirements instead
             additional_authorize_scopes: Microsoft Graph or other upstream scopes in full format.
                 - NOT prefixed with identifier_uri
                 - NOT validated on tokens
@@ -189,7 +186,10 @@ class AzureProvider(OAuthProxy):
                 When provided, the client is reused for JWT key fetches and the caller
                 is responsible for its lifecycle. When None (default), a fresh client is created per fetch.
             token_verifier: Optional custom token verifier. When omitted, a JWTVerifier
-                is created from the Azure tenant and application configuration.
+                is created from the Azure tenant and application configuration. A supplied
+                verifier is responsible for signature, issuer, audience, and scope or role
+                validation. Configure its required_scopes for any required API scopes;
+                the provider's required_scopes are not added to the custom verifier
             enable_cimd: Enable CIMD (Client ID Metadata Document) support for URL-based
                 client IDs (default True). Set to False to disable.
             fallback_refresh_token_expiry_seconds: Lifetime for the FastMCP-issued
