@@ -316,6 +316,11 @@ class AzureProvider(OAuthProxy):
 
     @property
     def scopes_supported(self) -> list[str]:
+        if (
+            self.client_registration_options is not None
+            and self.client_registration_options.valid_scopes is not None
+        ):
+            return self.client_registration_options.valid_scopes
         return self._azure_configured_scopes
 
     def get_challenge_scopes(

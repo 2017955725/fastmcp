@@ -109,6 +109,30 @@ class TestAzureProvider:
         assert provider.get_challenge_scopes() == []
         assert provider._default_scope_str == ""
 
+    @pytest.mark.parametrize("updated_scopes", [["read", "write"], []])
+    def test_updated_default_scopes_are_advertised(
+        self, memory_storage: MemoryStore, updated_scopes: list[str]
+    ):
+        provider = AzureProvider(
+            client_id="test_client",
+            client_secret="test_secret",
+            tenant_id="test-tenant",
+            base_url="https://myserver.com",
+            required_scopes=["read"],
+            jwt_signing_key="test-secret",
+            client_storage=memory_storage,
+        )
+
+        provider.update_default_scopes(updated_scopes)
+
+        assert provider.scopes_supported == updated_scopes
+        assert provider.required_scopes == ["read"]
+        assert provider.client_registration_options is not None
+        assert (
+            provider.scopes_supported
+            == provider.client_registration_options.valid_scopes
+        )
+
     def test_offline_access_automatically_included(self, memory_storage: MemoryStore):
         """Test that offline_access is automatically added to get refresh tokens."""
         # Without specifying offline_access
