@@ -46,11 +46,13 @@ class AzureProvider(OAuthProxy):
 
     Scope Handling:
     - required_scopes: Provide unprefixed scope names (e.g., ["read", "write"])
-      → Automatically prefixed with identifier_uri during initialization
-      → Validated on all tokens and advertised to MCP clients
+      Automatically prefixed with identifier_uri for Azure authorization requests
+      and advertised to MCP clients. With the default verifier, non-OIDC scopes are
+      validated on tokens. When token_verifier is supplied, configure token validation
+      requirements on that verifier; provider scopes are not added to it
     - additional_authorize_scopes: Provide full format (e.g., ["User.Read"])
-      → NOT prefixed, NOT validated, NOT advertised to clients
-      → Used to request Microsoft Graph or other upstream API permissions
+      Not prefixed, validated, or advertised to clients. Used to request Microsoft
+      Graph or other upstream API permissions
 
     Features:
     - OAuth proxy to Azure/Microsoft identity platform
